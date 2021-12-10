@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import ibm.gse.voyagems.domain.model.EventBase;
 import ibm.gse.voyagems.domain.model.freezer.FreezerAllocatedEvent;
 import ibm.gse.voyagems.domain.model.freezer.FreezerAllocatedPayload;
+import ibm.gse.voyagems.domain.model.freezer.FreezerNotFoundEvent;
+import ibm.gse.voyagems.domain.model.freezer.FreezerNotFoundPayload;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
 import io.vertx.core.json.JsonObject;
@@ -84,11 +86,15 @@ public class FreezerRequestListener implements Runnable {
                 responseEvent = new FreezerAllocatedEvent(System.currentTimeMillis(), "1.0", orederId,
                         freezerAllocatedPayload);
 
-            } else if(rawEvent.getString("type").equals(EventBase.TYPE_ORDER_SPOILT)) {
+            } else if(rawEvent.getString("type").equals(EventBase.TYPE_VOYAGE_NOT_FOUND)) {
 
-                /*
-                ROLLBACK TRANSACTION
-                 */
+                String orederId = rawEvent.getJsonObject("payload").getString("orderID");
+
+                FreezerNotFoundPayload freezerNotFoundPayload = new FreezerNotFoundPayload(orederId,
+                        "Voyage not found, rolling back container schedule");
+                responseEvent = new FreezerNotFoundEvent(System.currentTimeMillis(), "1.0",
+                        orederId, freezerNotFoundPayload);
+
             }
 
             jmsQueueWriter.sendMessage(responseEvent, System.getenv("FREEZER_RESPONSE_QUEUE"));
